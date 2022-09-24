@@ -1,15 +1,14 @@
-## Introduction Required
-## Data Description  Required
-## Exploratory Data Analysis Required
+## Initial intro/data exploration
+- [ ] Introduction Required
+- [ ] Data Description  Required
+- [ ] Exploratory Data Analysis Required
 
-##Addressing Objective 1:  Required
+## Addressing Objective 1:  Required
 - [ ] Restatement of Problem and the overall approach to solve it 
-
 
 ## Model Selection 
 - [ ] Type of Selection 
-Options: LASSO, RIDGE, ELASTIC NET, Stepwise, Forward, Backward, Manual / Intuition,
-			     A mix of all of the above.  	
+Options: LASSO, RIDGE, ELASTIC NET, Stepwise, Forward, Backward, Manual / Intuition, A mix of all of the above.  	
 
 ## Checking Assumptions 
 - [ ] Residual Plots
@@ -18,7 +17,6 @@ Options: LASSO, RIDGE, ELASTIC NET, Stepwise, Forward, Backward, Manual / Intuit
 ## Parameter Interpretation    
 - [ ] Interpretation                 
 - [ ] Confidence Intervals Not Required, but use if beneficial to the discussion.
-
 
 ## Addressing Objective 2:  Required
 - [ ] Restatement of problem and the overall objective 
