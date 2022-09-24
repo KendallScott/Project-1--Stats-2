@@ -1,0 +1,31 @@
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+#reading in the csvs
+msrp<-read.csv(file.choose())
+msrp = read.csv("./Data Files//msrp.csv") #read breweries.csv
+library(stringr)
+
+msrp$Market_Category <- str_replace_all(msrp$Market.Category, c(".*Luxury.*"="Luxury",  ".*Crossover.*"= "Crossover", ".*High-Performance.*"="High-Performance",  ".*Performance.*"= "Performance", ".*Exotic.*"= "Exotic", ".*Hybrid.*"= "Hybrid", ".*Hatchback.*"= "Hatchback",  ".*Factory Tuner.*"= "Factory Tuner", ".*Diesel.*"= "No Category", "N/A"="No Category"))
+
+#quick summary view
+sum_msrp<-msrp %>% group_by(Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+#Creating categorical variables
+msrp<-msrp %>% mutate(Luxury =case_when(Market_Category=="Luxury" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Crossover =case_when(Market_Category=="Crossover" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(High-Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Performance =case_when(Market_Category=="Performance" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Exotic =case_when(Market_Category=="Exotic" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Hybrid =case_when(Market_Category=="Hybrid" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Factory_Tuner =case_when(Market_Category=="Factory Tuner" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(High-Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
+
+#cleaning up Fuel types to be larger categories
+msrp$Fuel_Type <- str_replace_all(msrp$Engine.Fuel.Type, c(".*premium unleaded .*required.*"="Premium Required",  ".*regular.*"= "Regular", ".*premium unleaded .*recommended.*"="Premium Recommended",  ".*diesel.*"= "Diesel", ".*natural gas.*"= "Natural Gas", "electric.*"= "Electric","flex-fuel.*"= "Flex-fuel"))
+msrp<-msrp %>% mutate(Fuel_Type =case_when(Model=="Verona" ~ "Regular", TRUE ~ Fuel_Type ))
+
+#quick summary view
+sum_msrp<-msrp %>% group_by(Fuel_Type) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
