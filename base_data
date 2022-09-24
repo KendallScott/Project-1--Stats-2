@@ -15,12 +15,11 @@ sum_msrp
 #Creating categorical variables
 msrp<-msrp %>% mutate(Luxury =case_when(Market_Category=="Luxury" ~ 1, TRUE ~ 0 ))
 msrp<-msrp %>% mutate(Crossover =case_when(Market_Category=="Crossover" ~ 1, TRUE ~ 0 ))
-msrp<-msrp %>% mutate(High-Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(High_Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
 msrp<-msrp %>% mutate(Performance =case_when(Market_Category=="Performance" ~ 1, TRUE ~ 0 ))
 msrp<-msrp %>% mutate(Exotic =case_when(Market_Category=="Exotic" ~ 1, TRUE ~ 0 ))
 msrp<-msrp %>% mutate(Hybrid =case_when(Market_Category=="Hybrid" ~ 1, TRUE ~ 0 ))
 msrp<-msrp %>% mutate(Factory_Tuner =case_when(Market_Category=="Factory Tuner" ~ 1, TRUE ~ 0 ))
-msrp<-msrp %>% mutate(High-Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
 
 #cleaning up Fuel types to be larger categories
 msrp$Fuel_Type <- str_replace_all(msrp$Engine.Fuel.Type, c(".*premium unleaded .*required.*"="Premium Required",  ".*regular.*"= "Regular", ".*premium unleaded .*recommended.*"="Premium Recommended",  ".*diesel.*"= "Diesel", ".*natural gas.*"= "Natural Gas", "electric.*"= "Electric","flex-fuel.*"= "Flex-fuel"))
@@ -29,3 +28,39 @@ msrp<-msrp %>% mutate(Fuel_Type =case_when(Model=="Verona" ~ "Regular", TRUE ~ F
 #quick summary view
 sum_msrp<-msrp %>% group_by(Fuel_Type) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
 sum_msrp
+
+#this isn't working-- pulling from this as a source: https://data.bls.gov/pdq/SurveyOutputServlet
+                                              
+msrp<-msrp %>% mutate(Adjusted_MSRP =case_when(
+Year==1990 ~  1.210809308,
+Year==1991 ~  1.14292533,
+Year==1992 ~  1.12098540,
+Year==1993 ~  1.09694785,
+Year==1994 ~  1.06400961,
+Year==1995 ~  1.04110590,
+Year==1996 ~  1.02262420,
+Year==1997 ~  1.01865574,
+Year==1998 ~  1.02415490,
+Year==1999 ~  1.02812336,
+Year==2000 ~  1.02886036,
+Year==2001 ~  1.03322567,
+Year==2002 ~  1.04756883,
+Year==2003 ~  1.06219545,
+Year==2004 ~  1.06758122,
+Year==2005 ~  1.06179861,
+Year==2006 ~  1.06400961,
+Year==2007 ~  1.07305033,
+Year==2008 ~  1.08706978,
+Year==2009 ~  1.07734308,
+Year==2010 ~  1.06113757,
+Year==2011 ~  1.03475580,
+Year==2012 ~  1.01877763,
+Year==2013 ~  1.00822435,
+Year==2014 ~  1.00488064,
+Year==2015 ~  0.99902886,
+Year==2016 ~  0.99751517,
+TRUE ~ MSRP ))
+
+
+
+
