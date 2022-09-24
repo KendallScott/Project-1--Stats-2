@@ -37,34 +37,9 @@ Part of Objective 2 is to get comfortable with figuring new things out.  As you 
 When all we care about is predictions, don’t be afraid to try things.  Transformations, interactions, creating new variables from old variables.  Let your EDA help you in coming up with outside the box ideas.  Note:  This tip could be applied to Objective 1 as well, as long as it yielded an interpretable model.
 
 Many students will eventually migrate to more automated packages in R like Caret for Objective 2.  These packages may have the ability to run CV on all of the models simultaneously and provide a CV press statistic for each one of the models.  If this is the case (you should check because I don’t know), you can combine the train and test sets together to fit your models, just report the CV ASE/PRESS instead of the test ASE.  Validation ASE should still be provided.
-
 Another graph that is helpful for just getting a sense for how your predictions are behaving is to plot the predicted values versus the true values in a scatterplot.  The closer the data is to the 45 degree line the better.
-
-
 Additional details
-
 NOTE: ALL ANALYSIS MUST BE DONE IN SAS OR R and all code must be placed in the appendix of your report. Python is okay for quick formatting of data and data visualization, but analysis should be in R or SAS.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Required Information and SAMPLE FORMAT
 
@@ -80,23 +55,18 @@ The format of your paper (headers, sections, etc) is flexible although should co
 
 4.	Addressing Objective 1:  Required
 •	Restatement of Problem and the overall approach to solve it 
-
-
 •	Model Selection 
 		              Type of Selection
 			Options: LASSO, RIDGE, ELASTIC NET,
 			     Stepwise, Forward, Backward, 
 		             	     Manual / Intuition,
 			     A mix of all of the above.  	
-
 •	Checking Assumptions 
 			Residual Plots
 			Influential point analysis (Cook’s D and Leverage)
-	
 •	Parameter Interpretation    
 	       Interpretation                 
 	       Confidence Intervals Not Required, but use if beneficial to the discussion.
-
 
 5.	Addressing Objective 2:  Required
 
@@ -109,9 +79,6 @@ The format of your paper (headers, sections, etc) is flexible although should co
 •	Comparison of model results 
 			Table of test ASE, validation ASE, and any other relevant model fitting metrics.
 Discussion and insight as to what the results suggest.  Why does one fit better than the other?  Or perhaps why does it appear that all the models appear to be performing about the same?
-
-	
-
 6.	Final summary Required
 •	Quick recap of Objective 1 and Objective 2 findings
 •	Provide any additional details and comments on the implications of the models.  Scope of inference?  What other data would this model be good/poor to apply to?   Problems/concerns with the data or data collection? What would you do if you have more time?  What else would you collect? etc.  
