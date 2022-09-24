@@ -3,7 +3,7 @@ library(tidyr)
 library(tidyverse)
 #reading in the csvs
 msrp<-read.csv(file.choose())
-msrp = read.csv("./Data Files//msrp.csv") #read breweries.csv
+msrp = read.csv("./Data Files//msrp.csv") #read cars.csv
 library(stringr)
 
 msrp$Market_Category <- str_replace_all(msrp$Market.Category, c(".*Luxury.*"="Luxury",  ".*Crossover.*"= "Crossover", ".*High-Performance.*"="High-Performance",  ".*Performance.*"= "Performance", ".*Exotic.*"= "Exotic", ".*Hybrid.*"= "Hybrid", ".*Hatchback.*"= "Hatchback",  ".*Factory Tuner.*"= "Factory Tuner", ".*Diesel.*"= "No Category", "N/A"="No Category"))
@@ -30,37 +30,8 @@ sum_msrp<-msrp %>% group_by(Fuel_Type) %>% summarize( Mean_msrp = mean(MSRP), ca
 sum_msrp
 
 #this isn't working-- pulling from this as a source: https://data.bls.gov/pdq/SurveyOutputServlet
-                                              
-msrp<-msrp %>% mutate(Adjusted_MSRP =case_when(
-Year==1990 ~  1.210809308,
-Year==1991 ~  1.14292533,
-Year==1992 ~  1.12098540,
-Year==1993 ~  1.09694785,
-Year==1994 ~  1.06400961,
-Year==1995 ~  1.04110590,
-Year==1996 ~  1.02262420,
-Year==1997 ~  1.01865574,
-Year==1998 ~  1.02415490,
-Year==1999 ~  1.02812336,
-Year==2000 ~  1.02886036,
-Year==2001 ~  1.03322567,
-Year==2002 ~  1.04756883,
-Year==2003 ~  1.06219545,
-Year==2004 ~  1.06758122,
-Year==2005 ~  1.06179861,
-Year==2006 ~  1.06400961,
-Year==2007 ~  1.07305033,
-Year==2008 ~  1.08706978,
-Year==2009 ~  1.07734308,
-Year==2010 ~  1.06113757,
-Year==2011 ~  1.03475580,
-Year==2012 ~  1.01877763,
-Year==2013 ~  1.00822435,
-Year==2014 ~  1.00488064,
-Year==2015 ~  0.99902886,
-Year==2016 ~  0.99751517,
-TRUE ~ MSRP ))
+msrp$adjusted.MSRP<-as.factor(msrp$Year)                                          
 
-
-
-
+car_inflation = data.frame(Year = c(1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017), inflation = c(1.210809308, 1.142925336, 1.120985403, 1.096947855, 1.06400961, 1.041105909, 1.022624209, 1.018655745, 1.024154902, 1.028123365, 1.028860365, 1.033225675, 1.047568834, 1.062195456, 1.067581227, 1.06179861, 1.06400961, 1.073050337, 1.087069783, 1.07734308, 1.061137577, 1.034755801, 1.018777634, 1.008224356, 1.004880643, 0.99902886, 0.997515175, 1))
+msrp = merge(x=msrp,y=car_inflation,by="Year") 
+msrp$Adjusted_MSRP=msrp$inflation*msrp$MSRP
