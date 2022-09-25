@@ -3,7 +3,7 @@ library(tidyr)
 library(tidyverse)
 #reading in the csvs
 msrp<-read.csv(file.choose())
-msrp = read.csv("./Data Files//msrp.csv") #read breweries.csv
+msrp = read.csv("./Data Files//msrp.csv") #read csv
 library(stringr)
 
 msrp$Market_Category <- str_replace_all(msrp$Market.Category, c(".*Luxury.*"="Luxury",  ".*Crossover.*"= "Crossover", ".*High-Performance.*"="High-Performance",  ".*Performance.*"= "Performance", ".*Exotic.*"= "Exotic", ".*Hybrid.*"= "Hybrid", ".*Hatchback.*"= "Hatchback",  ".*Factory Tuner.*"= "Factory Tuner", ".*Diesel.*"= "No Category", "N/A"="No Category"))
