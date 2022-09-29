@@ -112,8 +112,15 @@ bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(a
   ylab("Adjusted MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
 bb
-
+# popularity vs. msrp with year
 bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP by Year")+ 
+  theme_minimal() +
+  ylab("Adjusted MSRP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+#hybrid popularity vs. msrp
+bb <- msrp   %>%filter(Market_Category=='Hybrid') %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Hybrid: Popularity and MSRP by Year")+ 
   theme_minimal() +
   ylab("Adjusted MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
