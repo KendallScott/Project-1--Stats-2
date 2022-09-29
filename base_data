@@ -106,11 +106,14 @@ msrp %>%filter(Market_Category=='Performance') %>% ggplot(aes(x = Adjusted_MSRP,
 msrp %>%filter(Market_Category=='Luxury') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
 msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
 
-library(ggthemes)
-install.packages("ggthemes")
-bb.lm <- lm(log_adj_msrp~ Popularity, msrp)
 #market category by popularity and msrp
 bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
+  theme_minimal() +
+  ylab("Adjusted MSRP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP by Year")+ 
   theme_minimal() +
   ylab("Adjusted MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
