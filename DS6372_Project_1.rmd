@@ -122,7 +122,6 @@ msrp$Factory_Tuner <- as.factor(msrp$Factory_Tuner)
 # Replacing Engine Cylinder for Electric vehicles with NULL
 # msrp$Engine.Cylinders <- msrp$Engine.Cylinders %>% replace_na()
 # msrp["Engine.Cylinders"][msrp["Engine.Cylinders"] == 0] <- "Not Available"
-
 ```
 
 
@@ -134,9 +133,11 @@ msrp %>%
     theme_minimal() +
     ggtitle("Scatterplot - MSRP by Year")
 ```
+
 There appears to be a significant difference in the way data with gathered before and after the year 2000. For this reason, we have decided to focus our model on years 2001 and on. We believe this provides the most use to the general audience because it aligns to the most recent years to our current time period. 
 
 Furthermore, we can see a very limited sample size for cars with an MSRP greater than $500,000. We have decided to focus our model on cars below this threshold.
+
 ```{r}
 # Filtering dataset and adding log variables
 msrp_trim <-
@@ -194,15 +195,66 @@ msrp_trim3 <-
     msrp_trim2 %>%
     filter(!is.na(Engine.HP))
 
-# Significantly more cars from 2015-2017 than other years.
+# Make
 msrp_trim3 %>%
-    group_by(Year) %>%
-    summarise(count = n())
+    ggplot(aes(x = Make, y = log_msrp)) +
+    geom_boxplot()
+
+msrp_by_make <-
+    msrp_trim %>%
+    group_by(Make) %>%
+    summarise(Mean = mean(log_msrp))
+
+# Creating new Make groups by mean msrp
+msrp_by_make <-
+    msrp_by_make %>%
+    mutate(
+        make_group =
+            ifelse(Mean < 10, "<10",
+                ifelse(Mean < 11, "<11",
+                    ifelse(Mean < 12, "<12", ">12")
+                )
+            )
+    ) %>%
+    select(c(Make, make_group))
+
+# Merging new Make Group into main dataset
+msrp_trim4 <- merge(x = msrp_trim3, y = msrp_by_make, by = "Make", all.x = TRUE)
+view(msrp_trim4)
+
+msrp_trim4$make_group <- as.factor(msrp_trim4$make_group)
+```
+
+After grouping the makes by their mean adjusted log(msrp), we can see a very clear correlation between make group and adjusted log(msrp).
+
+__Test, Train, Validation Splits__
+```{r}
+# Setup
+set.seed(200)
+msrp_train <-
+    msrp_trim3 %>%
+        select(c(Year, Engine.HP, Engine.Cylinders, Transmission.Type, Driven_Wheels, Number.of.Doors, Vehicle.Size,
+            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_adj_msrp, make_group))
+
+# Dataset
+index <- sample(seq_len(dim(msrp_train)[1]), dim(msrp_train)[1] * .8, replace = FALSE)
+train <- msrp_train[index, ]
+remainder <- msrp_train[-index, ]
+
+index2 <- sample(seq_len(dim(remainder)[1]), dim(remainder)[1] * .5, replace = FALSE)
+test <- remainder[index2, ]
+validate <- remainder[-index2, ]
+
+dim(train)
+dim(test)
+dim(validate)
 ```
 
 
 
+__EDA Continued__
 ```{r}
+# MSRP Review
 msrp_trim3 %>%
     ggplot(aes(x = MSRP)) +
     geom_histogram() +
@@ -217,6 +269,11 @@ msrp_trim %>%
     ggtitle("Histogram - MSRP") +
     xlab("log(MSRP)") +
     ylab("Count")
+
+# Significantly more cars from 2015-2017 than other years.
+msrp_trim3 %>%
+    group_by(Year) %>%
+    summarise(count = n())
 ```
 
 Even after filtering to Years > 2000 and MSRP < $500,000, MSRP is still heavily right skewed. We decided to introduce a log transformation to normalize MSRP distirbution. After the transformation, the distribution is still slright right skewed. We believe that with the sample size, the properties of the Critical Limit Theorem will account for any remaining skewness in our data. 
@@ -248,11 +305,6 @@ msrp_trim %>% ggplot(aes(x = Engine.HP, y = log_msrp)) + geom_point()
 
 ```
 
-
-
-
-
-
 ```{r}
 # Exploring Categorical Variables
 ## Fuel Type
@@ -263,8 +315,7 @@ msrp_trim %>% ggplot(aes(x = Engine.HP, y = log_msrp, color = Fuel_Type)) +
 msrp_trim %>%
     group_by(Fuel_Type) %>%
     summarise(count = n())
-### Conerns about limited Natrual Gas and Electric Vehicle Fuel Types
-
+### Concerns about limited Natrual Gas and Electric Vehicle Fuel Types
 msrp_trim %>% ggplot(aes(x = Popularity, y = log_adj_msrp)) +
     geom_point()
 
@@ -283,44 +334,8 @@ Multicollinearity
  - If removing Horesepower = 0 
 
 
-```{r}
-cat_cols <-
-    msrp_trim %>%
-    select_if(negate(is.numeric)) %>%
-    select(-c(Market.Category, adjusted.MSRP, Engine.Fuel.Type))
-str(cat_cols)
 
-# Make
-msrp_trim %>% ggplot(aes(x = Make, y = log_adj_msrp)) +
-    geom_boxplot()
-msrp_by_make <- msrp_trim %>%
-    group_by(Make) %>%
-    summarise(Mean = mean(log_adj_msrp))
-msrp_by_make <-
-    msrp_by_make %>%
-    mutate(
-        make_group =
-            ifelse(Mean < 10, "<10",
-                ifelse(Mean < 11, "<11",
-                    ifelse(Mean < 12, "<12", ">12")
-                )
-            )
-    ) %>%
-    select(c(Make, make_group))
-view(msrp_by_make)
 
-msrp_trim2 <- merge(x = msrp_trim, y = msrp_by_make, by = "Make", all.x = TRUE)
-view(msrp_trim2)
-
-msrp_trim2$make_group <- as.factor(msrp_trim2$make_group)
-
-msrp_trim2 %>% ggplot(aes(x = make_group, y = log_adj_msrp)) +
-    geom_boxplot()
-
-summary(lm(log_adj_msrp ~ make_group, data = msrp_trim2))
-```
-
-After grouping the makes by their mean adjusted log(msrp), we can see a very clear correlation between make group and adjusted log(msrp).
 
 Model has way too many levels and would immediately create an issue of overfitting if we included it in the model.
 
@@ -375,38 +390,8 @@ msrp_trim %>%
 msrp_train %>% ggplot(aes(x = Engine.HP, y = log_adj_msrp, color = Fuel_Type)) + geom_point()
 ```
 
-Suggest removing electric Fuel Type from the model. The primary correlation from a continuous variable standpoint and a major one from the categorical side having missing data for electric vehicles.
-
-```{r}
-msrp_trim3 <- msrp_trim2 %>% filter(Fuel_Type != "Electric")
-```
-
-
 __Model Building__
 ```{r}
-# Setup
-set.seed(200)
-msrp_train <-
-    msrp_trim3 %>%
-        select(c(Year, Engine.HP, Engine.Cylinders, Transmission.Type, Driven_Wheels, Number.of.Doors, Vehicle.Size,
-            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_adj_msrp, make_group))
-
-
-# Dataset
-index <- sample(seq_len(dim(msrp_train)[1]), dim(msrp_train)[1] * .8, replace = FALSE)
-train <- msrp_train[index, ]
-remainder <- msrp_train[-index, ]
-
-index2 <- sample(seq_len(dim(remainder)[1]), dim(remainder)[1] * .5, replace = FALSE)
-test <- remainder[index2, ]
-validate <- remainder[-index2, ]
-
-dim(train)
-dim(test)
-dim(validate)
-
-str(train)
-
 # Feature Selection
 model <- lm(log_adj_msrp ~ ., data = train)
 summary(model)
@@ -462,9 +447,4 @@ summary(final.model)
 
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
-
-
-
-
-
 ```
