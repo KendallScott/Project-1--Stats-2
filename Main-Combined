@@ -402,3 +402,24 @@ msrp_trim %>% ggplot(aes(x = Year, y = log_adj_msrp)) + geom_point()
 ```
 
 Multicollinearity - Both MPG variables and Engine HP - City MPG and Highway MPG - Remove both MPG variables from the model in favor of Engine HP
+
+
+__Test, Train, Validation Splits__
+```{r}
+# Setup
+set.seed(200)
+msrp_train <-
+    msrp_trim4 %>%
+        select(c(Year, Engine.HP, Engine.Cylinders, Transmission.Type, Driven_Wheels, Number.of.Doors, Vehicle.Size,
+            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_msrp, make_group))
+# Dataset
+index <- sample(seq_len(dim(msrp_train)[1]), dim(msrp_train)[1] * .8, replace = FALSE)
+train <- msrp_train[index, ]
+remainder <- msrp_train[-index, ]
+index2 <- sample(seq_len(dim(remainder)[1]), dim(remainder)[1] * .5, replace = FALSE)
+test <- remainder[index2, ]
+validate <- remainder[-index2, ]
+dim(train)
+dim(test)
+dim(validate)
+```
