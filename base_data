@@ -5,12 +5,13 @@ output: word_document
 date: "9/26/22"
 ---
 
-Libraries & Setup
+**Libraries & Setup**
 
-{r setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
 
-{r}
+```{r}
 
 library(dplyr)
 library(tidyr)
@@ -34,6 +35,8 @@ msrp$Market_Category <- str_replace_all(msrp$Market.Category, c(".*Luxury.*"="Lu
 #quick summary view
 sum_msrp<-msrp %>% group_by(Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
 sum_msrp
+sum_msrp<-msrp %>% group_by(Model) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
 
 #Creating categorical variables
 msrp<-msrp %>% mutate(Luxury =case_when(Market_Category=="Luxury" ~ 1, TRUE ~ 0 ))
@@ -47,19 +50,28 @@ msrp<-msrp %>% mutate(Factory_Tuner =case_when(Market_Category=="Factory Tuner" 
 #cleaning up Fuel types to be larger categories
 msrp$Fuel_Type <- str_replace_all(msrp$Engine.Fuel.Type, c(".*premium unleaded .*required.*"="Premium Required",  ".*regular.*"= "Regular", ".*premium unleaded .*recommended.*"="Premium Recommended",  ".*diesel.*"= "Diesel", ".*natural gas.*"= "Natural Gas", "electric.*"= "Electric","flex-fuel.*"= "Flex-fuel"))
 msrp<-msrp %>% mutate(Fuel_Type =case_when(Model=="Verona" ~ "Regular", TRUE ~ Fuel_Type ))
-
-#quick summary view
+```
+Summary Views
+```{r}
+#summary view by Fuel Type
 sum_msrp<-msrp %>% group_by(Fuel_Type) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
 sum_msrp
+#summary view by year
+sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), Mean_Adjusted_MSRP = mean(Adjusted_MSRP),cars = n()) %>% arrange(desc(Year))
+sum_msrp
 
-#this isn't working-- pulling from this as a source: https://data.bls.gov/pdq/SurveyOutputServlet
-msrp$adjusted.MSRP<-as.factor(msrp$Year)                            
-car_inflation = data.frame(
-Year = c(1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017), 
-inflation = c(1.210809308, 1.142925336, 1.120985403, 1.096947855, 1.06400961, 1.041105909, 1.022624209, 1.018655745, 1.024154902, 1.028123365, 1.028860365, 1.033225675, 1.047568834, 1.062195456, 1.067581227, 1.06179861, 1.06400961, 1.073050337, 1.087069783, 1.07734308, 1.061137577, 1.034755801, 1.018777634, 1.008224356, 1.004880643, 0.99902886, 0.997515175, 1))
-msrp = merge(x=msrp,y=car_inflation,by="Year") 
+#checking the structure
+head(msrp)
+str(msrp)
+
+#car_inflation = data.frame(
+#Year = c(1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017), 
+#inflation = c(1.210809308, 1.142925336, 1.120985403, 1.096947855, 1.06400961, 1.041105909, 1.022624209, 1.018655745, 1.024154902, 1.028123365, 1.028860365, 1.033225675, 1.047568834, 1.062195456, 1.067581227, 1.06179861, 1.06400961, 1.073050337, 1.087069783, 1.07734308, 1.061137577, 1.034755801, 1.018777634, 1.008224356, 1.004880643, 0.99902886, 0.997515175, 1))
+#msrp = merge(x=msrp,y=car_inflation,by="Year") 
+#msrp$Adjusted_MSRP=msrp$inflation*msrp$MSRP
 msrp =msrp %>%filter(Year > 2000) 
 
+#log transforms
 msrp <-
   msrp %>%
   mutate(log_msrp = log(MSRP),
@@ -67,14 +79,6 @@ msrp <-
          log_Popularity = log(Popularity)
   )
 
-
-msrp$Adjusted_MSRP=msrp$inflation*msrp$MSRP
-#quick summary view
-sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), Mean_Adjusted_MSRP = mean(Adjusted_MSRP),cars = n()) %>% arrange(desc(Year))
-sum_msrp
-#checking the structure
-head(msrp)
-str(msrp)
 #setting categories as factors
 msrp$Make <- as.factor(msrp$Make)
 msrp$Model <- as.factor(msrp$Model)
@@ -92,8 +96,7 @@ msrp$High_Performance <- as.factor(msrp$High_Performance)
 msrp$Performance <- as.factor(msrp$Performance)
 msrp$Exotic <- as.factor(msrp$Exotic)
 msrp$Hybrid <- as.factor(msrp$Hybrid)
-msrp$Factory_Tuner <- as.factor(msrp$Factory_Tuner,
-
+msrp$Factory_Tuner <- as.factor(msrp$Factory_Tuner)
 
 # RX-8 from all Years had 4-cylinder engines.
 msrp$Engine.Cylinders <- msrp$Engine.Cylinders %>% replace_na(4)
@@ -104,6 +107,11 @@ msrp$Number.of.Doors <- msrp$Number.of.Doors %>% replace_na(2)
 #replacing Nas for engine horsepower, cylinders, and number of doors
 msrp <- msrp %>% filter_at(vars(Engine.HP,Engine.Cylinders, Number.of.Doors ),all_vars(!is.na(.)))
 
+
+```
+
+
+```{r}
 #Random Forest
 install.packages("randomForest")
 install.packages("varImp")
@@ -134,17 +142,19 @@ msrp_randomforest = data.frame(
 model <- randomForest(MSRP ~  ., data = msrp_randomforest, importance=TRUE) 
 importance=importance(model)
 varImpPlot(model)
+```
 
-{r}
+```{r}
 #random forest for popularity
 model <- randomForest(Popularity ~  ., data = msrp_randomforest, importance=TRUE)
 importance=importance(model)
 varImpPlot(model)
 
+```
 
 Data clean up, made categorical variables to help provide better analysis. yada yada.
 
-{r}
+```{r}
 #EDA scratch
 #year and market category-- shows some info that could be included in analysis, like hybrid beginning in 2000s
 msrp %>% ggplot(aes(x = Year, y =Market_Category, color = Market_Category)) + geom_point()
@@ -194,10 +204,11 @@ msrp %>% ggplot(aes(x = log_adj_msrp)) + geom_histogram() + facet_wrap(~Year)
 # Charts
 msrp %>% ggplot(aes(x = Year, y = Adjusted_MSRP)) +
   geom_point()
+```
 
 Due to significant differences in data gathering for msrp, we have decided to focus on 2001 and forward. This gives us the most recent data and data that is consistent in it's msrp methodology.
 
-{r}
+```{r}
 # Filter to year 2001 and forward
 msrp_trim <-
     msrp %>% filter(Year > 2000)
@@ -228,5 +239,6 @@ msrp_trim %>% ggplot(aes(x = Engine.HP, y = log_adj_msrp)) + geom_point() + geom
 msrp_trim %>% ggplot(aes(x = Popularity, y = log_adj_msrp)) + geom_point()
 
 msrp_trim %>% ggplot(aes(x = Year, y = log_adj_msrp)) + geom_point()
+```
 
 Multicollinearity - Both MPG variables and Engine HP - City MPG and Highway MPG - Remove both MPG variables from the model in favor of Engine HP
