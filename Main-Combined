@@ -2,7 +2,7 @@
 title: DS 6372 - Project 1
 author: "Scott & Holmes"
 output: word_document
-date: "9/26/22"
+date: "10/2/22"
 ---
 
 **Libraries & Setup**
@@ -241,6 +241,26 @@ msrp_randomforest = data.frame(
 model <- randomForest(MSRP ~  ., data = msrp_randomforest, importance=TRUE) 
 importance=importance(model)
 varImpPlot(model)
+
+# Test & train Data
+install.packages("caTools")
+library(caTools)
+
+#prediction using Random Forest
+split = sample.split(msrp_randomforest, SplitRatio = 0.80)
+train = subset(msrp_randomforest, split == TRUE)
+test_group = subset(msrp_randomforest, split == FALSE)
+#splitting test group into test and validate
+split = sample.split(test_set, SplitRatio = 0.50)
+test = subset(test_set, split == TRUE)
+validate = subset(test_set, split == FALSE)
+
+classifier = randomForest(x = train[-3],
+                          y = train$MSRP,
+                          ntree = 500, random_state = 0)
+
+y_pred = predict(classifier, newdata = test)
+
 ```
 The top ranked variables from Random Forest for MSRP: 
 - Horsepower 
