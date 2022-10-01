@@ -338,9 +338,10 @@ bb+theme_minimal()
 
 ```{r}
 #popularity and adjusted msrp by various categories
-msrp %>%filter(Market_Category=='Performance') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
-msrp %>%filter(Market_Category=='Luxury') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
-msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
+perf<-msrp %>%filter(Market_Category=='Performance') %>% ggplot(aes(x =MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=TRUE, name="Popularity" ) 
+lux<-msrp %>%filter(Market_Category=='Luxury') %>% ggplot(aes(x = MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=TRUE, name="Popularity" ) 
+cross<-msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=TRUE, name="Popularity" ) 
+grid.arrange(perf, lux, nrow=3)
 
 #market category by popularity and msrp
 bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
@@ -540,4 +541,5 @@ final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
 summary(final.model)
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
+```
 ```
