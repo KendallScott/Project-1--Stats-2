@@ -14,8 +14,6 @@ library(tidyr)
 library(tidyverse)
 library(stringr)
 library(corrplot)
-library(plotly)
-library(GGally)
 library(leaps)
 
 library(httpgd)
