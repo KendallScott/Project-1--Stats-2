@@ -425,6 +425,47 @@ dim(validate)
 ```
 __Model Building__
 ```{r}
+# Cylinders
+msrp_trim2 %>% ggplot(aes(x = Engine.Cylinders, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Engine.Cylinders, data = msrp_trim2))
+# Market_Category
+msrp_trim2 %>% ggplot(aes(x = Market_Category, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Market_Category, data = msrp_trim2))
+# Transmission Type
+msrp_trim2 %>% ggplot(aes(x = Transmission.Type, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Transmission.Type, data = msrp_trim2))
+# Driven_Wheels
+msrp_trim2 %>% ggplot(aes(x = Driven_Wheels, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Driven_Wheels, data = msrp_trim2))
+# Vehicle.Size
+msrp_trim2 %>% ggplot(aes(x = Vehicle.Size, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Vehicle.Size, data = msrp_trim2))
+# Number.of.Doors
+msrp_trim2 %>% ggplot(aes(x = Number.of.Doors, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Number.of.Doors, data = msrp_trim2))
+# Categorical Statistics
+t(aggregate(log_adj_msrp ~ Engine.Fuel.Type, data = msrp_trim, summary))
+t(aggregate(log_adj_msrp ~ Market.Category, data = msrp_trim, mean))
+msrp_trim %>%
+    count(Engine.Cylinders, sort = TRUE)
+# Charts
+msrp_trim %>%
+    ggplot(aes(x = Year, y = log_adj_msrp, color = Market_Category)) +
+    geom_point()
+msrp_trim %>%
+    ggplot(aes(x = log_adj_msrp)) +
+    geom_histogram()
+msrp_train %>% ggplot(aes(x = Engine.HP, y = log_adj_msrp, color = Fuel_Type)) + geom_point()
+```
+
+__Model Building__
+```{r}
 # Feature Selection
 model <- lm(log_adj_msrp ~ ., data = train)
 summary(model)
@@ -472,4 +513,5 @@ final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
 summary(final.model)
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
+```
 ```
