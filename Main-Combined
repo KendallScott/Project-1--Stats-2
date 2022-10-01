@@ -2,7 +2,7 @@
 title: DS 6372 - Project 1
 author: "Scott & Holmes"
 output: word_document
-date: "10/2/22"
+date: "9/26/22"
 ---
 
 **Libraries & Setup**
@@ -247,6 +247,18 @@ install.packages("caTools")
 library(caTools)
 
 #prediction using Random Forest
+
+msrp_randomforest = data.frame(   
+  MSRP=msrp$MSRP,
+  Engine.HP=scale(msrp$Engine.HP),
+  Make=as.factor(msrp$Make),
+  Popularity=as.factor(msrp$Popularity),
+  Hybrid=as.factor(msrp$Hybrid),
+  Engine.Cylinders = scale(msrp$Engine.Cylinders),
+  Vehicle.Size=as.factor(msrp$Vehicle.Size)
+)
+
+#clean up variable selection for Popularity
 split = sample.split(msrp_randomforest, SplitRatio = 0.80)
 train = subset(msrp_randomforest, split == TRUE)
 test_group = subset(msrp_randomforest, split == FALSE)
@@ -255,29 +267,45 @@ split = sample.split(test_set, SplitRatio = 0.50)
 test = subset(test_set, split == TRUE)
 validate = subset(test_set, split == FALSE)
 
-classifier = randomForest(x = train[-3],
+classifier = randomForest(x = train[-1],
                           y = train$MSRP,
                           ntree = 500, random_state = 0)
 
 y_pred = predict(classifier, newdata = test)
 
+cm = table(test[, 1], y_pred)
+cm
+
+install.packages("ElemStatLearn")
+library(ElemStatLearn)
+
+# NOT RUN {
+data(iris)
+set.seed(111)
+ind <- sample(2, nrow(iris), replace = TRUE, prob=c(0.8, 0.2))
+iris.rf <- randomForest(Species ~ ., data=iris)
+iris.pred <- predict(iris.rf, iris[ind == 2,])
+table(observed = iris[ind==2, "Species"], predicted = iris.pred)
+## Get prediction for all trees.
+predict(iris.rf, iris[ind == 2,], predict.all=TRUE)
+## Proximities.
+predict(iris.rf, iris[ind == 2,], proximity=TRUE)
+## Nodes matrix.
+str(attr(predict(iris.rf, iris[ind == 2,], nodes=TRUE), "nodes"))
+# }
+
 ```
 The top ranked variables from Random Forest for MSRP: 
 - Horsepower 
 (28.78 IncMCSE)
-
 - Make 
 (24.55 IncMCSE)
-
 - Popularity 
 (24.3 IncMCSE)
-
 - Hybrid 
 (20.89 IncMCSE)
-
 - Engine Cylinders 
 (17.28 IncMCSE)
-
 - Vehicle Size
 (16.54 IncMCSE)
 
