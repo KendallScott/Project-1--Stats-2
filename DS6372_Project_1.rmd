@@ -163,7 +163,7 @@ msrp_trim %>%
     mutate(electric = ifelse(Fuel_Type == "Electric", TRUE, FALSE)) %>%
     filter(electric == TRUE) %>%
     ggplot(aes(x = Year, fill = electric)) + geom_bar() +
-    theme_minimal()
+    theme_minimal() +
     ggtitle("Electric Cars by Years") +
     ylab("Count")
 ## Electric cars represent a small portion of our overall sample. They are also only relevant years 2014-2017
@@ -178,9 +178,9 @@ msrp_trim2 %>%
     print(n = 100) %>%
     filter(num_nulls > 0)
 
-view(msrp_trim2 %>% filter(is.na(Engine.HP))) # Action - Remove NA rows
-view(msrp_trim2 %>% filter(is.na(Engine.Cylinders))) # Action - Replace NA with correct value for car
-view(msrp_trim2 %>% filter(is.na(Number.of.Doors))) # Action - Replace NA with correct value for car
+# view(msrp_trim2 %>% filter(is.na(Engine.HP))) # Action - Remove NA rows
+# view(msrp_trim2 %>% filter(is.na(Engine.Cylinders))) # Action - Replace NA with correct value for car
+# view(msrp_trim2 %>% filter(is.na(Number.of.Doors))) # Action - Replace NA with correct value for car
 
 # RX-8 from all Years had 4-cylinder engines.
 msrp_trim2$Engine.Cylinders <- msrp_trim2$Engine.Cylinders %>% replace_na("4")
@@ -196,7 +196,12 @@ msrp_trim3 <-
 # Make
 msrp_trim3 %>%
     ggplot(aes(x = Make, y = log_msrp)) +
-    geom_boxplot()
+    geom_boxplot() +
+    theme_minimal() +
+    theme(axis.text.x = element_blank()) +
+    ggtitle("Box Plot - log(MSRP) by Make") +
+    xlab("Make") +
+    ylab("log(MSRP)")
 
 msrp_by_make <-
     msrp_trim %>%
@@ -218,7 +223,6 @@ msrp_by_make <-
 
 # Merging new Make Group into main dataset
 msrp_trim4 <- merge(x = msrp_trim3, y = msrp_by_make, by = "Make", all.x = TRUE)
-view(msrp_trim4)
 
 msrp_trim4$make_group <- as.factor(msrp_trim4$make_group)
 ```
@@ -230,9 +234,9 @@ __Test, Train, Validation Splits__
 # Setup
 set.seed(200)
 msrp_train <-
-    msrp_trim3 %>%
+    msrp_trim4 %>%
         select(c(Year, Engine.HP, Engine.Cylinders, Transmission.Type, Driven_Wheels, Number.of.Doors, Vehicle.Size,
-            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_adj_msrp, make_group))
+            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_msrp, make_group))
 
 # Dataset
 index <- sample(seq_len(dim(msrp_train)[1]), dim(msrp_train)[1] * .8, replace = FALSE)
@@ -253,7 +257,7 @@ dim(validate)
 __EDA Continued__
 ```{r}
 # MSRP Review
-msrp_trim3 %>%
+msrp_trim4 %>%
     ggplot(aes(x = MSRP)) +
     geom_histogram() +
     theme_minimal() +
