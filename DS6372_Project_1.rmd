@@ -1,4 +1,4 @@
----
+\---
 title: DS 6372 - Project 1
 author: "Scott & Holmes"
 output: word_document
