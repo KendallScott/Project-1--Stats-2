@@ -204,7 +204,7 @@ After grouping the makes by their mean adjusted log(msrp), we can see a very cle
 #• Provide interpretation of the regression coefficients of your final model including hypothesis testing, interpretation of regression coefficients, and confidence intervals. It’s also good to mention the Practical vs Statistical significance of the predictors. Answer any additional questions using your model that you deem are relevant. 
 #• The training data set can be used for EDA and model fitting while the test set can be used to help compare models to make a final call. There is no need to use the validation data set for this objective. Practical Consideration for Objective 1: EDA, EDA, EDA! It helps you on so many fronts so use it to your advantage. When writing a concise report, you do not have to literally step out every single step of your model building process. I know you guys are going to being iterating on things many many times. That does not all have to be there. You can summarize that iteration stuff in a paragraph.
 
-We leveraged Random forest to analyze the relatinoship between Popularity and MSRP-- and found xxx.#need update
+We leveraged Random forest to analyze the relationship between Popularity and MSRP-- and found xxx.#need update
 
 Random forest and graphs on popularity/msrp
 
@@ -311,6 +311,29 @@ The top ranked variables from Random Forest for Popularity:
 #year and market category-- shows some info that could be included in analysis, like hybrid beginning in 2000s
 msrp %>% ggplot(aes(x = Year, y =Market_Category, color = Market_Category)) + geom_point()
 
+#summary view by Year and Market Category
+sum_msrp<-msrp %>% group_by(Year, Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+sum_msrp %>% ggplot(aes(x = Year, y =cars, color = Market_Category)) + geom_line()
+
+```
+Looking at Year and Market Category, there are a number of cars which showed up after 2001: 
+Hybrid (2008)
+Flex Fuel (2002)
+
+We also see a sharp increase in the sample size starting beginning in 2015.
+
+```{r}
+#summary view by Year and Market Category
+sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+sum_msrp %>% ggplot(aes(x = Year, y =cars)) + geom_line()
+```
+
+
+```{r}
 #popularity and adjusted msrp by various categories
 msrp %>%filter(Market_Category=='Performance') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
 msrp %>%filter(Market_Category=='Luxury') %>% ggplot(aes(x = Adjusted_MSRP, y =Popularity, color = Popularity)) + geom_point()
@@ -361,6 +384,7 @@ msrp %>%
     geom_point() +
     theme_minimal() +
     ggtitle("Scatterplot - MSRP by Year")
+
 ```
 
 
