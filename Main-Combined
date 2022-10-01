@@ -423,3 +423,53 @@ dim(train)
 dim(test)
 dim(validate)
 ```
+__Model Building__
+```{r}
+# Feature Selection
+model <- lm(log_adj_msrp ~ ., data = train)
+summary(model)
+reg_fwd <- regsubsets(log_adj_msrp ~ .,
+    data = train, method = "forward", nvmax = 100)
+summary(reg_fwd)$adjr2
+summary(reg_fwd)$rss
+summary(reg_fwd)$bic
+par(mfrow = c(1, 3))
+bics <- summary(reg_fwd)$bic
+plot(1:51, bics, type = "l", ylab = "BIC", xlab = "# of predictors")
+index <- which(bics == min(bics))
+points(index, bics[index], col = "red", pch = 10)
+adjr2 <- summary(reg_fwd)$adjr2
+plot(1:51, adjr2, type = "l", ylab = "Adjusted R-squared", xlab = "# of predictors")
+index <- which(adjr2 == max(adjr2))
+points(index, adjr2[index], col = "red", pch = 10)
+rss <- summary(reg_fwd)$rss
+plot(1:51, rss, type = "l", ylab = "train RSS", xlab = "# of predictors")
+index <- which(rss == min(rss))
+points(index, rss[index], col = "red", pch = 10)
+# Prediction Function from Turner
+predict.regsubsets <- function(object, newdata, id, ...) {
+    form <- as.formula(object$call[[2]])
+    mat <- model.matrix(form, newdata)
+    coefi <- coef(object, id = id)
+    xvars <- names(coefi)
+    mat[, xvars] %*% coefi
+}
+testASE <- c()
+# note my index is to 20 since that what I set it in regsubsets
+for (i in 1:51) {
+    predictions <- predict.regsubsets(object = reg_fwd, newdata = test, id = i)
+    testASE[i] <- mean((test$log_adj_msrp) - predictions)^2
+}
+par(mfrow = c(1, 1))
+plot(1:51, testASE, type = "l", xlab = "# of predictors", ylab = "test vs train ASE", ylim = c(0, 1))
+index <- which(testASE == min(testASE))
+points(index, testASE[index], col = "red", pch = 10)
+rss <- summary(reg_fwd)$rss
+lines(1:51, rss / dim(test)[1], lty = 3, col = "blue") # Dividing - ASE=RSS/sample size
+reg.final <- regsubsets(log_adj_msrp ~ ., data = train, method = "forward", nvmax = 7)
+coef(reg.final, 2)
+final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
+summary(final.model)
+plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
+lines(c(0, 400000), c(0, 400000), col = "red")
+```
