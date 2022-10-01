@@ -12,7 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-
+install.packages("viridis")
+library(viridis)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
@@ -308,14 +309,13 @@ The top ranked variables from Random Forest for Popularity:
 - City MPG
 (16.54 IncMCSE)
 ```{r}
-#year and market category-- shows some info that could be included in analysis, like hybrid beginning in 2000s
-msrp %>% ggplot(aes(x = Year, y =Market_Category, color = Market_Category)) + geom_point()
+#year and Market Category graphs
 
 #summary view by Year and Market Category
 sum_msrp<-msrp %>% group_by(Year, Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
 sum_msrp
 
-sum_msrp %>% ggplot(aes(x = Year, y =cars, color = Market_Category)) + geom_line()
+sum_msrp %>% ggplot(aes(x = Year, y =cars, color = Market_Category)) +geom_line()+theme_minimal() +scale_color_viridis(option="viridis", discrete=TRUE, name="Market Category" ) 
 
 ```
 Looking at Year and Market Category, there are a number of cars which showed up after 2001: 
@@ -325,11 +325,14 @@ Flex Fuel (2002)
 We also see a sharp increase in the sample size starting beginning in 2015.
 
 ```{r}
-#summary view by Year and Market Category
+#summary view by Year
 sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
 sum_msrp
 
-sum_msrp %>% ggplot(aes(x = Year, y =cars)) + geom_line()
+bb<-msrp %>% group_by(Year) %>% summarize(cars = n()) %>% ggplot(aes(x =Year, y = cars, fill=cars)) + geom_col()+ 
+  xlab('Year') + ylab('Cars')+ggtitle("# of Cars by Year") +theme(axis.text = element_text(size = 6))+ scale_fill_gradient(low='#46085C', high='#4FBA6E', name='# of Cars')
+bb+theme_minimal()
+
 ```
 
 
@@ -537,5 +540,4 @@ final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
 summary(final.model)
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
-```
 ```
