@@ -239,7 +239,7 @@ bb <- msrp %>% ggplot(aes(x = log_msrp, y=log_Popularity)) + geom_point(aes(fill
   ggtitle("MSRP vs. Popularity")+
   geom_smooth(method=lm, color="black")
 bb # + scale_fill_manual(values = c("#6698FF", "#E95839"))
-
+```
  
 #• Build a model with the main goal to identify key relationships and is highly interpretable. Provide detailed information on summary statistics, EDA, and your model building process. 
 #• Provide interpretation of the regression coefficients of your final model including hypothesis testing, interpretation of regression coefficients, and confidence intervals. It’s also good to mention the Practical vs Statistical significance of the predictors. Answer any additional questions using your model that you deem are relevant. 
