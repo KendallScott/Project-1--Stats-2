@@ -224,7 +224,6 @@ msrp_randomforest = data.frame(
   Transmission.Type=as.factor(msrp$Transmission.Type),
   Driven_Wheels=as.factor(msrp$Driven_Wheels),
   Make=as.factor(msrp$Make),
-  Model=as.factor(msrp$Model),
   Popularity=msrp$Popularity,
   Number.of.Doors=as.factor(msrp$Number.of.Doors),
   Vehicle.Size=as.factor(msrp$Vehicle.Size),
@@ -253,6 +252,63 @@ varImpPlot(model)
 
 # Test & train Data
 install.packages("caTools")
+
+
+
+#test/train/validate for Random Forest
+split = sample.split(msrp_randomforest, SplitRatio = 0.80)
+train = subset(msrp_randomforest, split == TRUE)
+test_group = subset(msrp_randomforest, split == FALSE)
+#splitting test group into test and validate
+split = sample.split(test_set, SplitRatio = 0.50)
+test = subset(test_set, split == TRUE)
+validate = subset(test_set, split == FALSE)
+
+#feature selection for random forest
+install.packages("Boruta")
+library(Boruta)
+boruta.train <- Boruta(MSRP~., data = train, doTrace = 2)
+
+plot(boruta.train, xlab = "", xaxt = "n")
+lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
+boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
+names(lz) <- colnames(boruta.train$ImpHistory)
+Labels <- sort(sapply(lz,median))
+axis(side = 1,las=2,labels = names(Labels),
+at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+
+mod_rf <- randomForest(MSRP~.,data=train, ntree=50, importance=TRUE)
+pred_rf <- predict(mod_rf, test_group)
+
+#inserting predictions into test
+test_group$pred<-predict(mod_rf, test_group)
+#RMSE Forest
+RMSE.forest <- sqrt(mean((test_group$MSRP-test_group$pred)^2))
+
+table(factor(pred_rf, levels=min(test_group):max(test_group)), 
+      factor(test_group, levels=min(test_group):max(test_group)))
+
+predict(mod_rf, train)
+cm_rf <- confusionMatrix(as.integer(pred_rf), test_group$MSRP)
+cm_rf
+
+
+#example with iris
+# NOT RUN {
+data(iris)
+set.seed(111)
+ind <- sample(2, nrow(iris), replace = TRUE, prob=c(0.8, 0.2))
+iris.rf <- randomForest(Species ~ ., data=iris)
+iris.pred <- predict(iris.rf, iris[ind == 2,])
+table(observed = iris[ind==2, "Species"], predicted = iris.pred)
+## Get prediction for all trees.
+predict(iris.rf, iris[ind == 2,], predict.all=TRUE)
+## Proximities.
+predict(iris.rf, iris[ind == 2,], proximity=TRUE)
+## Nodes matrix.
+str(attr(predict(iris.rf, iris[ind == 2,], nodes=TRUE), "nodes"))
+# }
+
 
 ```
 The top ranked variables from Random Forest for MSRP: 
@@ -287,47 +343,6 @@ bb
 model <- randomForest(Popularity ~  ., data = msrp_randomforest, importance=TRUE)
 importance=importance(model)
 varImpPlot(model)
-
-library(caTools)
-
-#prediction using Random Forest
-
-#clean up variable selection for Popularity
-split = sample.split(msrp_randomforest, SplitRatio = 0.80)
-train = subset(msrp_randomforest, split == TRUE)
-test_group = subset(msrp_randomforest, split == FALSE)
-#splitting test group into test and validate
-split = sample.split(test_set, SplitRatio = 0.50)
-test = subset(test_set, split == TRUE)
-validate = subset(test_set, split == FALSE)
-
-classifier = randomForest(x = train[-1],
-                          y = train$MSRP,
-                          ntree = 500, random_state = 0)
-
-y_pred = predict(classifier, newdata = test)
-
-cm = table(test[, 1], y_pred)
-cm
-
-install.packages("ElemStatLearn")
-library(ElemStatLearn)
-
-#example with iris
-# NOT RUN {
-data(iris)
-set.seed(111)
-ind <- sample(2, nrow(iris), replace = TRUE, prob=c(0.8, 0.2))
-iris.rf <- randomForest(Species ~ ., data=iris)
-iris.pred <- predict(iris.rf, iris[ind == 2,])
-table(observed = iris[ind==2, "Species"], predicted = iris.pred)
-## Get prediction for all trees.
-predict(iris.rf, iris[ind == 2,], predict.all=TRUE)
-## Proximities.
-predict(iris.rf, iris[ind == 2,], proximity=TRUE)
-## Nodes matrix.
-str(attr(predict(iris.rf, iris[ind == 2,], nodes=TRUE), "nodes"))
-# }
 
 #Popularity and Make with MSRP
 bb <- msrp  %>% ggplot(aes(x = Popularity, y=Make )) + geom_point(aes(fill=MSRP, color=MSRP),pch=21,size=3, alpha=0.5)+ ggtitle("MSRP and Engine Horsepower by Market Category")+ 
