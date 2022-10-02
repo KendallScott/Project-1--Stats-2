@@ -219,28 +219,32 @@ We don't have information on how the Popularity metric was built, however lookin
 #Random Forest
 msrp_randomforest = data.frame(   
   MSRP=msrp$MSRP,
-  Year=as.factor(msrp$Year),
-  Engine.HP=scale(msrp$Engine.HP),
-  Engine.Cylinders = scale(msrp$Engine.Cylinders),
+  Engine.HP=msrp$Engine.HP,
+  Engine.Cylinders = msrp$Engine.Cylinders,
   Transmission.Type=as.factor(msrp$Transmission.Type),
   Driven_Wheels=as.factor(msrp$Driven_Wheels),
   Make=as.factor(msrp$Make),
-  Popularity=as.factor(msrp$Popularity),
+  Model=as.factor(msrp$Model),
+  Popularity=msrp$Popularity,
   Number.of.Doors=as.factor(msrp$Number.of.Doors),
   Vehicle.Size=as.factor(msrp$Vehicle.Size),
   Vehicle.Style=as.factor(msrp$Vehicle.Style),
-  city.mpg=scale(msrp$city.mpg),
-  Luxury=as.factor(msrp$Luxury),
-  Crossover=as.factor(msrp$Crossover),
-  High_Performance=as.factor(msrp$High_Performance),
-  Performance=as.factor(msrp$Performance),
-  Exotic=as.factor(msrp$Exotic),
-  Hybrid=as.factor(msrp$Hybrid),
-  Factory_Tuner=as.factor(msrp$Factory_Tuner)
+  city.mpg=msrp$city.mpg
 )
 
-# Remove variables with Nearly Zero Variance, which transforms from 19 columns down to 15
-msrp_randomforest <- msrp_randomforest[, -nearZeroVar(msrp_randomforest)]
+# Check for variables with near zero variability
+nearzero <- ncol(msrp_randomforest[, -nearZeroVar(msrp_randomforest)])
+#if nearzero greater than 0, use this to remove near zero variability
+#msrp_randomforest <- msrp_randomforest[, -nearZeroVar(msrp_randomforest)]
+
+
+# check for highly correlated variables
+corrMatrix <- cor(na.omit(msrp_randomforest[sapply(msrp_randomforest, is.numeric)]))
+removecor = nrow(findCorrelation(corrMatrix, cutoff = .90, verbose = TRUE))
+
+#if remove cor not null use this to clean data
+#removecor = findCorrelation(corrMatrix, cutoff = .90, verbose = TRUE)
+#randomForest = randomForest[,-removecor]
 
 #random forest for msrp
 model <- randomForest(MSRP ~  ., data = msrp_randomforest, importance=TRUE) 
