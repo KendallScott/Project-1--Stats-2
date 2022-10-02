@@ -269,6 +269,7 @@ install.packages("Boruta")
 library(Boruta)
 boruta.train <- Boruta(MSRP~., data = train, doTrace = 2)
 
+#plot of feature selection for random forest
 plot(boruta.train, xlab = "", xaxt = "n")
 lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
 boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
@@ -285,29 +286,6 @@ test_group$pred<-predict(mod_rf, test_group)
 #RMSE Forest
 RMSE.forest <- sqrt(mean((test_group$MSRP-test_group$pred)^2))
 
-table(factor(pred_rf, levels=min(test_group):max(test_group)), 
-      factor(test_group, levels=min(test_group):max(test_group)))
-
-predict(mod_rf, train)
-cm_rf <- confusionMatrix(as.integer(pred_rf), test_group$MSRP)
-cm_rf
-
-
-#example with iris
-# NOT RUN {
-data(iris)
-set.seed(111)
-ind <- sample(2, nrow(iris), replace = TRUE, prob=c(0.8, 0.2))
-iris.rf <- randomForest(Species ~ ., data=iris)
-iris.pred <- predict(iris.rf, iris[ind == 2,])
-table(observed = iris[ind==2, "Species"], predicted = iris.pred)
-## Get prediction for all trees.
-predict(iris.rf, iris[ind == 2,], predict.all=TRUE)
-## Proximities.
-predict(iris.rf, iris[ind == 2,], proximity=TRUE)
-## Nodes matrix.
-str(attr(predict(iris.rf, iris[ind == 2,], nodes=TRUE), "nodes"))
-# }
 
 
 ```
