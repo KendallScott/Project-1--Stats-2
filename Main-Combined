@@ -1,4 +1,4 @@
----
+\---
 title: DS 6372 - Project 1
 author: "Scott & Holmes"
 output: word_document
@@ -123,6 +123,8 @@ Analyzing MSRP(retail price) for automobiles from 2001-2017, using a variety of 
 We are analyzing MSRP for non-electric cars in the US between 2001 and 2017, utilizing a variety of car characteristics (x,x,x,x).
 #need update<-- populate with the variables used to model
 
+#add graph? we can do plots showing the sharp decreases from before 2001, show plots of resdiduals for the over 500K as well-- saw in the random forest model that the outliers were from the over 500K group
+
 There appears to be a significant difference in the way data with gathered before and after the year 2000. For this reason, we have decided to focus our model on years 2001 and on. We believe this provides the most use to the general audience because it aligns to the most recent years to our current time period. 
 
 This dataset contained 10,187 rows of data (on non-electric cars), which excluded any data on cars, which was missing values for:
@@ -204,16 +206,43 @@ msrp_trim4$make_group <- as.factor(msrp_trim4$make_group)
 ```
 After grouping the makes by their mean adjusted log(msrp), we can see a very clear correlation between make group and adjusted log(msrp).
 
+We don't have information on how the Popularity metric was built, however looking at the relationship between Popularity and MSRP.
 
+#need to reformat this to be on this data
+#model with logged data
+```{r}
+bb <- msrp %>% ggplot(aes(x = MSRP, y=Popularity)) + geom_point(aes(fill=Engine.HP),pch=21,size=3)+
+        xlab("MSRP")+
+        ylab("Popularity")+
+        ggtitle("MSRP vs. Popularity")+
+        geom_smooth(method=lm,se=FALSE,fullrange=TRUE, aes(color=Engine.HP))
+bb
+
+bb + scale_color_brewer(palette = "GnBu")+ scale_fill_brewer(palette = "GnBu")+ theme_dark()
+      
+fit = lm(MSRP~Engine.HP*Popularity, data= msrp)
+summary(fit)
+#outlier analysis
+lev_outlier_res<-ols_plot_resid_lev(fit)
+train$lev_outlier_res<-lev_outlier_res[["data"]][["fct_color"]]
+#outliers by sale type
+train %>% filter(lev_outlier_res == "outlier & leverage") %>%ggplot(aes(x=as.factor(lev_outlier_res), fill=SaleType))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.5) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
+            stat="count", position=position_stack(0.9), vjust=0.5)+
+  xlab('High Leverage and Outliers') +
+  ylab('Percent of SaleType')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  theme(axis.text = element_text(size = 7))+
+ scale_fill_manual(values = c("#6698FF", "#E95839"))
+ 
 #• Build a model with the main goal to identify key relationships and is highly interpretable. Provide detailed information on summary statistics, EDA, and your model building process. 
 #• Provide interpretation of the regression coefficients of your final model including hypothesis testing, interpretation of regression coefficients, and confidence intervals. It’s also good to mention the Practical vs Statistical significance of the predictors. Answer any additional questions using your model that you deem are relevant. 
 #• The training data set can be used for EDA and model fitting while the test set can be used to help compare models to make a final call. There is no need to use the validation data set for this objective. Practical Consideration for Objective 1: EDA, EDA, EDA! It helps you on so many fronts so use it to your advantage. When writing a concise report, you do not have to literally step out every single step of your model building process. I know you guys are going to being iterating on things many many times. That does not all have to be there. You can summarize that iteration stuff in a paragraph.
 
-We leveraged Random forest to analyze the relationship between Popularity and MSRP-- and found xxx.#need update
+We leveraged Random forest to analyze the relationship between MSRP and other variables.
 
-Random forest and graphs on popularity/msrp
 
-We don't have information on how the Popularity metric was built, however looking at the relationship between Popularity and MSRP.
 
 ```{r}
 #Random Forest
@@ -252,8 +281,6 @@ varImpPlot(model)
 
 # Test & train Data
 install.packages("caTools")
-
-
 
 #test/train/validate for Random Forest
 split = sample.split(msrp_randomforest, SplitRatio = 0.80)
@@ -605,5 +632,4 @@ final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
 summary(final.model)
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
-```
 ```
