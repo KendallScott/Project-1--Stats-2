@@ -270,7 +270,8 @@ library(Boruta)
 boruta.train <- Boruta(MSRP~., data = train, doTrace = 2)
 
 #plot of feature selection for random forest
-plot(boruta.train, xlab = "", xaxt = "n")
+plot(boruta.train, xlab = "", xaxt = "n")+ theme_classic()
+
 lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
 boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
 names(lz) <- colnames(boruta.train$ImpHistory)
@@ -278,14 +279,40 @@ Labels <- sort(sapply(lz,median))
 axis(side = 1,las=2,labels = names(Labels),
 at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
 
-mod_rf <- randomForest(MSRP~.,data=train, ntree=50, importance=TRUE)
+#ordered by boruta importance in dataframe
+msrp_randomforest = data.frame(   
+  MSRP=msrp$MSRP,
+  Engine.HP=msrp$Engine.HP,
+  Make=as.factor(msrp$Make),
+  city.mpg=msrp$city.mpg,
+  Engine.Cylinders = msrp$Engine.Cylinders,
+  Popularity=msrp$Popularity,
+  Vehicle.Size=as.factor(msrp$Vehicle.Size),
+  Transmission.Type=as.factor(msrp$Transmission.Type),
+  Vehicle.Style=as.factor(msrp$Vehicle.Style),
+  Number.of.Doors=as.factor(msrp$Number.of.Doors),
+  Driven_Wheels=as.factor(msrp$Driven_Wheels)
+)
+
+mod_rf <- randomForest(MSRP~.,data=train, ntree=100, importance=TRUE)
 pred_rf <- predict(mod_rf, test_group)
 
 #inserting predictions into test
 test_group$pred<-predict(mod_rf, test_group)
 #RMSE Forest
 RMSE.forest <- sqrt(mean((test_group$MSRP-test_group$pred)^2))
+test_group$residual<-(test_group$MSRP-test_group$pred)^2
 
+test_pred <- test_group  %>% ggplot(aes(x = MSRP, y=pred )) + geom_point(aes(fill=residual, color=residual),pch=21,size=3, alpha=0.5)+ ggtitle("Actual vs. Predicted MSRP Random Forest")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  xlab("Predicted")
+test_pred
+
+ggplot(test_group, aes(x=pred, y= MSRP)) +
+  geom_point(aes(fill=residual, color=residual),pch=21,size=3, alpha=0.5)+
+  geom_abline(intercept=0, slope=1) +
+  labs(x='Predicted Values', y='Actual Values', title='Predicted vs. Actual Values using Random Forest')
 
 
 ```
@@ -350,7 +377,7 @@ Looking at Year and Market Category, there are a number of cars which showed up 
 Hybrid (2008)
 Flex Fuel (2002)
 
-We also see a sharp increase in the sample size starting beginning in 2015.
+We also see a sharp increase in the sample size beginning in 2015.
 
 ```{r}
 #summary view by Year
@@ -375,36 +402,36 @@ cross<-msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x =MSRP, y =P
 grid.arrange(perf, lux, ncol=2)
 ```
 ```{r}
-
-```
 #market category by popularity and msrp
-bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
+bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
   theme_minimal() +
-  ylab("Adjusted MSRP")+
+  ylab("MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
 bb
 
 # popularity vs. msrp with year
-bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP by Year")+ 
+bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP by Year")+ 
   theme_minimal() +
-  ylab("Adjusted MSRP")+
+  ylab("MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
 bb
 
 #hybrid popularity vs. msrp
-bb <- msrp   %>%filter(Market_Category=='Hybrid') %>% ggplot(aes(x = log_Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Hybrid: Popularity and MSRP by Year")+ 
+bb <- msrp   %>%filter(Market_Category=='Hybrid') %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Hybrid: Popularity and MSRP by Year")+ 
   theme_minimal() +
-  ylab("Adjusted MSRP")+
+  ylab("MSRP")+
   geom_smooth(method='lm', formula= y~x, color="black")
 bb
+
 #performance popularity vs. msrp
 bb <- msrp  %>%filter(Market_Category=='Performance') %>% ggplot(aes(x = log_Popularity, y=log_adj_msrp )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
   theme_minimal() +
-  ylab("Adjusted MSRP")+
+  ylab("MSRP")+
   geom_smooth(method='lm', formula= y~(x*x), color="black")
 bb
+
 #crossover popularity vs. msrp
-bb <- msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = Popularity, y=Adjusted_MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.3)+ ggtitle("Popularity and MSRP")+ 
+bb <- msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = Popularity, y=MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.3)+ ggtitle("Popularity and MSRP")+ 
   geom_smooth(method='lm', formula= y~x, color="black")
 bb  
 
