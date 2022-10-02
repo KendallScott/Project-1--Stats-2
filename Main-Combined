@@ -1,4 +1,4 @@
-\---
+---
 title: DS 6372 - Project 1
 author: "Scott & Holmes"
 output: word_document
@@ -24,6 +24,7 @@ library(GGally)
 library(randomForest)
 library(varImp)
 library(caret)
+library(olsrr)
 
 install.packages("gridExtra")
 library(gridExtra)
@@ -219,22 +220,26 @@ bb <- msrp %>% ggplot(aes(x = MSRP, y=Popularity)) + geom_point(aes(fill=Engine.
 bb
 
 bb + scale_color_brewer(palette = "GnBu")+ scale_fill_brewer(palette = "GnBu")+ theme_dark()
-      
-fit = lm(MSRP~Engine.HP*Popularity, data= msrp)
+
+msrp <-
+  msrp %>%
+  mutate(log_msrp = log(MSRP),
+         log_Popularity=log(Popularity)
+  )
+
+fit = lm(log_msrp~Engine.HP*log_Popularity, data= msrp)
 summary(fit)
 #outlier analysis
 lev_outlier_res<-ols_plot_resid_lev(fit)
-train$lev_outlier_res<-lev_outlier_res[["data"]][["fct_color"]]
+msrp$lev_outlier_res<-lev_outlier_res[["data"]][["fct_color"]]
 #outliers by sale type
-train %>% filter(lev_outlier_res == "outlier & leverage") %>%ggplot(aes(x=as.factor(lev_outlier_res), fill=SaleType))+
-  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.5) +
-  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
-            stat="count", position=position_stack(0.9), vjust=0.5)+
-  xlab('High Leverage and Outliers') +
-  ylab('Percent of SaleType')+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
-  theme(axis.text = element_text(size = 7))+
- scale_fill_manual(values = c("#6698FF", "#E95839"))
+bb <- msrp %>% ggplot(aes(x = log_msrp, y=log_Popularity)) + geom_point(aes(fill=lev_outlier_res),pch=21, alpha=1)+
+  xlab("MSRP")+
+  ylab("Popularity")+
+  ggtitle("MSRP vs. Popularity")+
+  geom_smooth(method=lm, color="black")
+bb # + scale_fill_manual(values = c("#6698FF", "#E95839"))
+
  
 #• Build a model with the main goal to identify key relationships and is highly interpretable. Provide detailed information on summary statistics, EDA, and your model building process. 
 #• Provide interpretation of the regression coefficients of your final model including hypothesis testing, interpretation of regression coefficients, and confidence intervals. It’s also good to mention the Practical vs Statistical significance of the predictors. Answer any additional questions using your model that you deem are relevant. 
@@ -469,7 +474,7 @@ bb
 msrp <-
   msrp %>%
   mutate(log_msrp = log(MSRP),
-         log_adj_msrp = log(Adjusted_MSRP)
+         log_Popularity=log(Popularity)
   )
 msrp %>% ggplot(aes(x = log_adj_msrp)) + geom_histogram() + facet_wrap(~Year)
 
@@ -632,4 +637,5 @@ final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
 summary(final.model)
 plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
 lines(c(0, 400000), c(0, 400000), col = "red")
+```
 ```
