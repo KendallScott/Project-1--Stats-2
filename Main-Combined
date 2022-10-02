@@ -278,6 +278,9 @@ names(lz) <- colnames(boruta.train$ImpHistory)
 Labels <- sort(sapply(lz,median))
 axis(side = 1,las=2,labels = names(Labels),
 at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+#all attributes selected were deemed imporant
+final.boruta <- TentativeRoughFix(boruta.train)
+print(final.boruta)
 
 #ordered by boruta importance in dataframe
 msrp_randomforest = data.frame(   
