@@ -23,6 +23,7 @@ library(plotly)
 library(GGally)
 library(randomForest)
 library(varImp)
+library(caret)
 
 install.packages("gridExtra")
 library(gridExtra)
@@ -124,7 +125,7 @@ We are analyzing MSRP for non-electric cars in the US between 2001 and 2017, uti
 
 There appears to be a significant difference in the way data with gathered before and after the year 2000. For this reason, we have decided to focus our model on years 2001 and on. We believe this provides the most use to the general audience because it aligns to the most recent years to our current time period. 
 
-This dataset contained 10,187 rows, which excluded any data on cars, which was missing values for:
+This dataset contained 10,187 rows of data (on non-electric cars), which excluded any data on cars, which was missing values for:
 • Horse Power
 • Engine Cylinders
 • Number of Doors
@@ -237,6 +238,10 @@ msrp_randomforest = data.frame(
   Hybrid=as.factor(msrp$Hybrid),
   Factory_Tuner=as.factor(msrp$Factory_Tuner)
 )
+
+# Remove variables with Nearly Zero Variance, which transforms from 19 columns down to 15
+msrp_randomforest <- msrp_randomforest[, -nearZeroVar(msrp_randomforest)]
+
 #random forest for msrp
 model <- randomForest(MSRP ~  ., data = msrp_randomforest, importance=TRUE) 
 importance=importance(model)
@@ -247,18 +252,12 @@ install.packages("caTools")
 
 ```
 The top ranked variables from Random Forest for MSRP: 
-- Horsepower 
-(28.78 IncMCSE)
-- Make 
-(24.55 IncMCSE)
-- Popularity 
-(24.3 IncMCSE)
-- Hybrid 
-(20.89 IncMCSE)
-- Engine Cylinders 
-(17.28 IncMCSE)
-- Vehicle Size
-(16.54 IncMCSE)
+- Horsepower (28.78 IncMCSE)
+- Make (24.55 IncMCSE)
+- Popularity (24.3 IncMCSE)
+- Hybrid (20.89 IncMCSE)
+- Engine Cylinders (17.28 IncMCSE)
+- Vehicle Size (16.54 IncMCSE)
 
 ```{r}
 #showing the linear relationship between Horsepower and MSRP
@@ -288,16 +287,6 @@ varImpPlot(model)
 library(caTools)
 
 #prediction using Random Forest
-
-msrp_randomforest = data.frame(   
-  MSRP=msrp$MSRP,
-  Engine.HP=scale(msrp$Engine.HP),
-  Make=as.factor(msrp$Make),
-  Popularity=as.factor(msrp$Popularity),
-  Hybrid=as.factor(msrp$Hybrid),
-  Engine.Cylinders = scale(msrp$Engine.Cylinders),
-  Vehicle.Size=as.factor(msrp$Vehicle.Size)
-)
 
 #clean up variable selection for Popularity
 split = sample.split(msrp_randomforest, SplitRatio = 0.80)
@@ -344,23 +333,12 @@ bb <- msrp  %>% ggplot(aes(x = Popularity, y=Make )) + geom_point(aes(fill=MSRP,
 bb
 ```
 The top ranked variables from Random Forest for Popularity: 
-- Make 
-(28.78 IncMCSE)
-
-- Luxury 
-(24.55 IncMCSE)
-
-- Year 
-(24.3 IncMCSE)
-
-- Vehicle Style 
-(20.89 IncMCSE)
-
-- Engine HP 
-(17.28 IncMCSE)
-
-- City MPG
-(16.54 IncMCSE)
+- Make (28.78 IncMCSE)
+- Luxury (24.55 IncMCSE)
+- Year (24.3 IncMCSE)
+- Vehicle Style (20.89 IncMCSE)
+- Engine HP (17.28 IncMCSE)
+- City MPG (16.54 IncMCSE)
 ```{r}
 #year and Market Category graphs
 
