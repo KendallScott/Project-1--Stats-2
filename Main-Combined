@@ -1,0 +1,609 @@
+---
+title: DS 6372 - Project 1
+author: "Scott & Holmes"
+output: word_document
+date: "9/26/22"
+---
+
+**Libraries & Setup**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("viridis")
+library(viridis)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(stringr)
+library(corrplot)
+library(plotly)
+library(GGally)
+library(randomForest)
+library(varImp)
+library(caret)
+
+install.packages("gridExtra")
+library(gridExtra)
+
+#library(httpgd)
+#hgd()
+#hgd_browse()
+
+#reading in the csv
+msrp<-read.csv(file.choose())
+msrp = read.csv("./Data Files//msrp.csv") #read data.csv
+library(stringr)
+
+msrp$Market_Category <- str_replace_all(msrp$Market.Category, c(".*Luxury.*"="Luxury",  ".*Crossover.*"= "Crossover", ".*High-Performance.*"="High-Performance",  ".*Performance.*"= "Performance", ".*Exotic.*"= "Exotic", ".*Hybrid.*"= "Hybrid", ".*Hatchback.*"= "Hatchback",  ".*Factory Tuner.*"= "Factory Tuner", ".*Diesel.*"= "No Category", "N/A"="No Category"))
+
+#quick summary view
+sum_msrp<-msrp %>% group_by(Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+sum_msrp<-msrp %>% group_by(Model) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+#Creating categorical variables
+msrp<-msrp %>% mutate(Luxury =case_when(Market_Category=="Luxury" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Crossover =case_when(Market_Category=="Crossover" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(High_Performance =case_when(Market_Category=="High-Performance" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Performance =case_when(Market_Category=="Performance" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Exotic =case_when(Market_Category=="Exotic" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Hybrid =case_when(Market_Category=="Hybrid" ~ 1, TRUE ~ 0 ))
+msrp<-msrp %>% mutate(Factory_Tuner =case_when(Market_Category=="Factory Tuner" ~ 1, TRUE ~ 0 ))
+
+#cleaning up Fuel types to be larger categories
+msrp$Fuel_Type <- str_replace_all(msrp$Engine.Fuel.Type, c(".*premium unleaded .*required.*"="Premium Required",  ".*regular.*"= "Regular", ".*premium unleaded .*recommended.*"="Premium Recommended",  ".*diesel.*"= "Diesel", ".*natural gas.*"= "Natural Gas", "electric.*"= "Electric","flex-fuel.*"= "Flex-fuel"))
+msrp<-msrp %>% mutate(Fuel_Type =case_when(Model=="Verona" ~ "Regular", TRUE ~ Fuel_Type ))
+
+#car_inflation = data.frame(
+#Year = c(1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017), 
+#inflation = c(1.210809308, 1.142925336, 1.120985403, 1.096947855, 1.06400961, 1.041105909, 1.022624209, 1.018655745, 1.024154902, 1.028123365, 1.028860365, 1.033225675, 1.047568834, 1.062195456, 1.067581227, 1.06179861, 1.06400961, 1.073050337, 1.087069783, 1.07734308, 1.061137577, 1.034755801, 1.018777634, 1.008224356, 1.004880643, 0.99902886, 0.997515175, 1))
+#msrp = merge(x=msrp,y=car_inflation,by="Year") 
+#msrp$Adjusted_MSRP=msrp$inflation*msrp$MSRP
+msrp =msrp %>% filter(Year > 2000) 
+msrp =msrp %>% filter(MSRP < 500000)
+
+#log transforms
+msrp <-
+  msrp %>%
+  mutate(log_msrp = log(MSRP),
+         log_adj_msrp = log(Adjusted_MSRP), 
+         log_Popularity = log(Popularity)
+  )
+
+#setting categories as factors
+msrp$Make <- as.factor(msrp$Make)
+msrp$Model <- as.factor(msrp$Model)
+msrp$Engine.Cylinders <- as.factor(msrp$Engine.Cylinders)
+msrp$Transmission.Type <- as.factor(msrp$Transmission.Type)
+msrp$Driven_Wheels <- as.factor(msrp$Driven_Wheels)
+msrp$Number.of.Doors <- as.factor(msrp$Number.of.Doors)
+msrp$Vehicle.Size <- as.factor(msrp$Vehicle.Size)
+msrp$Vehicle.Style <- as.factor(msrp$Vehicle.Style)
+msrp$Market_Category <- as.factor(msrp$Market_Category)
+msrp$Fuel_Type <- as.factor(msrp$Fuel_Type)
+msrp$Luxury <- as.factor(msrp$Luxury)
+msrp$Crossover <- as.factor(msrp$Crossover)
+msrp$High_Performance <- as.factor(msrp$High_Performance)
+msrp$Performance <- as.factor(msrp$Performance)
+msrp$Exotic <- as.factor(msrp$Exotic)
+msrp$Hybrid <- as.factor(msrp$Hybrid)
+msrp$Factory_Tuner <- as.factor(msrp$Factory_Tuner)
+
+# RX-8 from all Years had 4-cylinder engines.
+msrp$Engine.Cylinders <- msrp$Engine.Cylinders %>% replace_na(4)
+# Ferrari FF from 2013 had 2 doors
+msrp$Number.of.Doors <- msrp$Number.of.Doors %>% replace_na(2)
+
+# Engine HP is the most highly correlated continuous variable with MSRP. We dropped all N/A rows.
+#replacing Nas for engine horsepower, cylinders, and number of doors
+msrp <- msrp %>% filter_at(vars(Engine.HP,Engine.Cylinders, Number.of.Doors ),all_vars(!is.na(.)))
+```
+
+Summary Views
+
+```{r}
+#summary view by year
+sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), Mean_Adjusted_MSRP = mean(Adjusted_MSRP),cars = n()) %>% arrange(desc(Year))
+sum_msrp
+
+#summary view by Fuel Type
+sum_msrp<-msrp %>% group_by(Fuel_Type) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+#checking the structure
+head(msrp)
+str(msrp)
+```
+Analyzing MSRP(retail price) for automobiles from 2001-2017, using a variety of car variables.
+
+We are analyzing MSRP for non-electric cars in the US between 2001 and 2017, utilizing a variety of car characteristics (x,x,x,x).
+#need update<-- populate with the variables used to model
+
+There appears to be a significant difference in the way data with gathered before and after the year 2000. For this reason, we have decided to focus our model on years 2001 and on. We believe this provides the most use to the general audience because it aligns to the most recent years to our current time period. 
+
+This dataset contained 10,187 rows of data (on non-electric cars), which excluded any data on cars, which was missing values for:
+• Horse Power
+• Engine Cylinders
+• Number of Doors
+```{r}
+# adding log variables
+msrp_trim <-
+    msrp %>%
+    filter(MSRP < 500000) %>%
+    mutate(log_msrp = log(MSRP)) %>%
+    select(-c(Engine.Fuel.Type, Market.Category))
+str(msrp_trim)
+# N/A value totals
+# from https://stackoverflow.com/questions/24027605/determine-the-number-of-na-values-in-a-column
+msrp_trim %>%
+    map_df(function(x) sum(is.na(x))) %>%
+    gather(feature, num_nulls) %>%
+    print(n = 100) %>%
+    filter(num_nulls > 0)
+msrp_trim %>% filter(is.na(Engine.HP)) %>% group_by(Fuel_Type) %>% summarise(count = n())
+msrp_trim %>% filter(is.na(Engine.Cylinders)) %>% group_by(Fuel_Type) %>% summarise(count = n())
+msrp_trim %>% filter(is.na(Number.of.Doors)) %>% group_by(Fuel_Type) %>% summarise(count = n())
+```
+
+Furthermore, we can see a very limited sample size for cars with an MSRP greater than $500,000. We have decided to focus our analysis and model on cars below this threshold.
+```{r}
+
+## Electirc cars are contributing to the majority of N/A values
+msrp_trim %>%
+    mutate(electric = ifelse(Fuel_Type == "Electric", TRUE, FALSE)) %>%
+    filter(electric == TRUE) %>%
+    ggplot(aes(x = Year, fill = electric)) + geom_bar() +
+    theme_minimal() +
+    ggtitle("Electric Cars by Years") +
+    ylab("Count")
+## Electric cars represent a small portion of our overall sample. They are also only relevant years 2014-2017
+msrp_trim2 <-
+    msrp_trim %>%
+    filter(Fuel_Type != "Electric")
+msrp_trim2 %>%
+    map_df(function(x) sum(is.na(x))) %>%
+    gather(feature, num_nulls) %>%
+    print(n = 100) %>%
+    filter(num_nulls > 0)
+
+msrp_trim3 <-
+    msrp_trim2 %>%
+    filter(!is.na(Engine.HP))
+# Make
+msrp_trim3 %>%
+    ggplot(aes(x = Make, y = log_msrp)) +
+    geom_boxplot() +
+    theme_minimal() +
+    theme(axis.text.x = element_blank()) +
+    ggtitle("Box Plot - log(MSRP) by Make") +
+    xlab("Make") +
+    ylab("log(MSRP)")
+msrp_by_make <-
+    msrp_trim %>%
+    group_by(Make) %>%
+    summarise(Mean = mean(log_msrp))
+# Creating new Make groups by mean msrp
+msrp_by_make <-
+    msrp_by_make %>%
+    mutate(
+        make_group =
+            ifelse(Mean < 10, "<10",
+                ifelse(Mean < 11, "<11",
+                    ifelse(Mean < 12, "<12", ">12")
+                )
+            )
+    ) %>%
+    select(c(Make, make_group))
+# Merging new Make Group into main dataset
+msrp_trim4 <- merge(x = msrp_trim3, y = msrp_by_make, by = "Make", all.x = TRUE)
+msrp_trim4$make_group <- as.factor(msrp_trim4$make_group)
+```
+After grouping the makes by their mean adjusted log(msrp), we can see a very clear correlation between make group and adjusted log(msrp).
+
+
+#• Build a model with the main goal to identify key relationships and is highly interpretable. Provide detailed information on summary statistics, EDA, and your model building process. 
+#• Provide interpretation of the regression coefficients of your final model including hypothesis testing, interpretation of regression coefficients, and confidence intervals. It’s also good to mention the Practical vs Statistical significance of the predictors. Answer any additional questions using your model that you deem are relevant. 
+#• The training data set can be used for EDA and model fitting while the test set can be used to help compare models to make a final call. There is no need to use the validation data set for this objective. Practical Consideration for Objective 1: EDA, EDA, EDA! It helps you on so many fronts so use it to your advantage. When writing a concise report, you do not have to literally step out every single step of your model building process. I know you guys are going to being iterating on things many many times. That does not all have to be there. You can summarize that iteration stuff in a paragraph.
+
+We leveraged Random forest to analyze the relationship between Popularity and MSRP-- and found xxx.#need update
+
+Random forest and graphs on popularity/msrp
+
+We don't have information on how the Popularity metric was built, however looking at the relationship between Popularity and MSRP.
+
+```{r}
+#Random Forest
+msrp_randomforest = data.frame(   
+  MSRP=msrp$MSRP,
+  Engine.HP=msrp$Engine.HP,
+  Engine.Cylinders = msrp$Engine.Cylinders,
+  Transmission.Type=as.factor(msrp$Transmission.Type),
+  Driven_Wheels=as.factor(msrp$Driven_Wheels),
+  Make=as.factor(msrp$Make),
+  Popularity=msrp$Popularity,
+  Number.of.Doors=as.factor(msrp$Number.of.Doors),
+  Vehicle.Size=as.factor(msrp$Vehicle.Size),
+  Vehicle.Style=as.factor(msrp$Vehicle.Style),
+  city.mpg=msrp$city.mpg
+)
+
+# Check for variables with near zero variability
+nearzero <- ncol(msrp_randomforest[, -nearZeroVar(msrp_randomforest)])
+#if nearzero greater than 0, use this to remove near zero variability
+#msrp_randomforest <- msrp_randomforest[, -nearZeroVar(msrp_randomforest)]
+
+
+# check for highly correlated variables
+corrMatrix <- cor(na.omit(msrp_randomforest[sapply(msrp_randomforest, is.numeric)]))
+removecor = nrow(findCorrelation(corrMatrix, cutoff = .90, verbose = TRUE))
+
+#if remove cor not null use this to clean data
+#removecor = findCorrelation(corrMatrix, cutoff = .90, verbose = TRUE)
+#randomForest = randomForest[,-removecor]
+
+#random forest for msrp
+model <- randomForest(MSRP ~  ., data = msrp_randomforest, importance=TRUE) 
+importance=importance(model)
+varImpPlot(model)
+
+# Test & train Data
+install.packages("caTools")
+
+
+
+#test/train/validate for Random Forest
+split = sample.split(msrp_randomforest, SplitRatio = 0.80)
+train = subset(msrp_randomforest, split == TRUE)
+test_group = subset(msrp_randomforest, split == FALSE)
+#splitting test group into test and validate
+split = sample.split(test_set, SplitRatio = 0.50)
+test = subset(test_set, split == TRUE)
+validate = subset(test_set, split == FALSE)
+
+#feature selection for random forest
+install.packages("Boruta")
+library(Boruta)
+boruta.train <- Boruta(MSRP~., data = train, doTrace = 2)
+
+#plot of feature selection for random forest
+plot(boruta.train, xlab = "", xaxt = "n")+ theme_classic()
+
+lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
+boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
+names(lz) <- colnames(boruta.train$ImpHistory)
+Labels <- sort(sapply(lz,median))
+axis(side = 1,las=2,labels = names(Labels),
+at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+#all attributes selected were deemed imporant
+final.boruta <- TentativeRoughFix(boruta.train)
+print(final.boruta)
+
+#ordered by boruta importance in dataframe
+msrp_randomforest = data.frame(   
+  MSRP=msrp$MSRP,
+  Engine.HP=msrp$Engine.HP,
+  Make=as.factor(msrp$Make),
+  city.mpg=msrp$city.mpg,
+  Engine.Cylinders = msrp$Engine.Cylinders,
+  Popularity=msrp$Popularity,
+  Vehicle.Size=as.factor(msrp$Vehicle.Size),
+  Transmission.Type=as.factor(msrp$Transmission.Type),
+  Vehicle.Style=as.factor(msrp$Vehicle.Style),
+  Number.of.Doors=as.factor(msrp$Number.of.Doors),
+  Driven_Wheels=as.factor(msrp$Driven_Wheels)
+)
+
+mod_rf <- randomForest(MSRP~.,data=train, ntree=100, importance=TRUE)
+pred_rf <- predict(mod_rf, test_group)
+
+#inserting predictions into test
+test_group$pred<-predict(mod_rf, test_group)
+#RMSE Forest
+RMSE.forest <- sqrt(mean((test_group$MSRP-test_group$pred)^2))
+test_group$residual<-(test_group$MSRP-test_group$pred)^2
+
+test_pred <- test_group  %>% ggplot(aes(x = MSRP, y=pred )) + geom_point(aes(fill=residual, color=residual),pch=21,size=3, alpha=0.5)+ ggtitle("Actual vs. Predicted MSRP Random Forest")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  xlab("Predicted")
+test_pred
+
+ggplot(test_group, aes(x=pred, y= MSRP)) +
+  geom_point(aes(fill=residual, color=residual),pch=21,size=3, alpha=0.5)+
+  geom_abline(intercept=0, slope=1) +
+  labs(x='Predicted Values', y='Actual Values', title='Predicted vs. Actual Values using Random Forest')
+
+
+```
+The top ranked variables from Random Forest for MSRP: 
+- Horsepower (28.78 IncMCSE)
+- Make (24.55 IncMCSE)
+- Popularity (24.3 IncMCSE)
+- Hybrid (20.89 IncMCSE)
+- Engine Cylinders (17.28 IncMCSE)
+- Vehicle Size (16.54 IncMCSE)
+
+```{r}
+#showing the linear relationship between Horsepower and MSRP
+#MSRP by Engine HP and Make
+bb <- msrp  %>% ggplot(aes(x = MSRP, y=Engine.HP )) + geom_point(aes(fill=Make, color=Make),pch=21,size=3, alpha=0.5)+ ggtitle("MSRP and Engine Horsepower by Make")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  xlab("Engine HP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+#MSRP by Engine HP and Market Category
+bb <- msrp  %>% ggplot(aes(x = MSRP, y=Engine.HP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("MSRP and Engine Horsepower by Market Category")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  xlab("Engine HP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+```
+
+```{r}
+#random forest for popularity
+model <- randomForest(Popularity ~  ., data = msrp_randomforest, importance=TRUE)
+importance=importance(model)
+varImpPlot(model)
+
+#Popularity and Make with MSRP
+bb <- msrp  %>% ggplot(aes(x = Popularity, y=Make )) + geom_point(aes(fill=MSRP, color=MSRP),pch=21,size=3, alpha=0.5)+ ggtitle("MSRP and Engine Horsepower by Market Category")+ 
+  theme_minimal() +
+  ylab("Make")+
+  xlab("Popularity")
+bb
+```
+The top ranked variables from Random Forest for Popularity: 
+- Make (28.78 IncMCSE)
+- Luxury (24.55 IncMCSE)
+- Year (24.3 IncMCSE)
+- Vehicle Style (20.89 IncMCSE)
+- Engine HP (17.28 IncMCSE)
+- City MPG (16.54 IncMCSE)
+```{r}
+#year and Market Category graphs
+
+#summary view by Year and Market Category
+sum_msrp<-msrp %>% group_by(Year, Market_Category) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+sum_msrp %>% ggplot(aes(x = Year, y =cars, color = Market_Category)) +geom_line()+theme_minimal() +scale_color_viridis(option="viridis", discrete=TRUE, name="Market Category" ) 
+
+```
+Looking at Year and Market Category, there are a number of cars which showed up after 2001: 
+Hybrid (2008)
+Flex Fuel (2002)
+
+We also see a sharp increase in the sample size beginning in 2015.
+
+```{r}
+#summary view by Year
+sum_msrp<-msrp %>% group_by(Year) %>% summarize( Mean_msrp = mean(MSRP), cars = n()) %>% arrange(desc(cars))
+sum_msrp
+
+bb<-msrp %>% group_by(Year) %>% summarize(cars = n()) %>% ggplot(aes(x =Year, y = cars, fill=cars)) + geom_col()+ 
+  xlab('Year') + ylab('Cars')+ggtitle("# of Cars by Year") +theme(axis.text = element_text(size = 6))+ scale_fill_gradient(low='#46085C', high='#4FBA6E', name='# of Cars')
+bb+theme_minimal()
+
+```
+
+
+```{r}
+#popularity and adjusted msrp by various categories
+perf<-msrp %>%filter(Market_Category=='Performance') %>% ggplot(aes(x =MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=FALSE ) + theme(legend.position="none")
+
+lux<-msrp %>%filter(Market_Category=='Luxury') %>% ggplot(aes(x =MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=FALSE ) + theme(legend.position="none")
+
+cross<-msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x =MSRP, y =Popularity, color = Popularity)) + geom_point()+theme_minimal()+scale_fill_viridis(option="viridis", discrete=FALSE ) + theme(legend.position="none")
+
+grid.arrange(perf, lux, ncol=2)
+```
+```{r}
+#market category by popularity and msrp
+bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+# popularity vs. msrp with year
+bb <- msrp  %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP by Year")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+#hybrid popularity vs. msrp
+bb <- msrp   %>%filter(Market_Category=='Hybrid') %>% ggplot(aes(x = log_Popularity, y=MSRP )) + geom_point(aes(fill=Year, color=Year),pch=21,size=3, alpha=0.5)+ ggtitle("Hybrid: Popularity and MSRP by Year")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb
+
+#performance popularity vs. msrp
+bb <- msrp  %>%filter(Market_Category=='Performance') %>% ggplot(aes(x = log_Popularity, y=log_adj_msrp )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.5)+ ggtitle("Popularity and MSRP")+ 
+  theme_minimal() +
+  ylab("MSRP")+
+  geom_smooth(method='lm', formula= y~(x*x), color="black")
+bb
+
+#crossover popularity vs. msrp
+bb <- msrp %>%filter(Market_Category=='Crossover') %>% ggplot(aes(x = Popularity, y=MSRP )) + geom_point(aes(fill=Market_Category, color=Market_Category),pch=21,size=3, alpha=0.3)+ ggtitle("Popularity and MSRP")+ 
+  geom_smooth(method='lm', formula= y~x, color="black")
+bb  
+
+#Year and log transforms for msrp
+msrp <-
+  msrp %>%
+  mutate(log_msrp = log(MSRP),
+         log_adj_msrp = log(Adjusted_MSRP)
+  )
+msrp %>% ggplot(aes(x = log_adj_msrp)) + geom_histogram() + facet_wrap(~Year)
+
+#MSRP by Year
+msrp %>%
+    ggplot(aes(x = Year, y = MSRP)) +
+    geom_point() +
+    theme_minimal() +
+    ggtitle("Scatterplot - MSRP by Year")
+
+```
+
+
+
+
+
+
+```{r}
+# Filter to year 2001 and forward
+msrp_trim <-
+    msrp %>% filter(Year > 2000)
+
+summary(msrp_trim)
+str(msrp_trim)
+
+# log(msrp)
+msrp_trim <-
+    msrp_trim %>%
+    mutate(log_adj_msrp = log(Adjusted_MSRP))
+
+# Continuous Statistics
+num_cols <-
+    msrp_trim %>%
+    select(where(is.numeric)) %>%
+    select(-c(MSRP, Adjusted_MSRP, inflation))
+str(num_cols)
+
+## Coorelation
+cor_matrix <- cor(num_cols,  use = "complete.obs")
+corrplot.mixed(cor_matrix)
+corrplot(cor_matrix, method = "ellipse", type = "upper")
+pairs(num_cols)
+
+msrp_trim %>% ggplot(aes(x = Engine.HP, y = log_adj_msrp)) + geom_point() + geom_smooth(method = "lm")
+
+msrp_trim %>% ggplot(aes(x = Popularity, y = log_adj_msrp)) + geom_point()
+
+msrp_trim %>% ggplot(aes(x = Year, y = log_adj_msrp)) + geom_point()
+```
+
+Multicollinearity - Both MPG variables and Engine HP - City MPG and Highway MPG - Remove both MPG variables from the model in favor of Engine HP
+
+
+__Test, Train, Validation Splits__
+```{r}
+# Setup
+set.seed(200)
+msrp_train <-
+    msrp_trim4 %>%
+        select(c(Year, Engine.HP, Engine.Cylinders, Transmission.Type, Driven_Wheels, Number.of.Doors, Vehicle.Size,
+            Vehicle.Style, Popularity, Market_Category, Fuel_Type, log_msrp, make_group))
+# Dataset
+index <- sample(seq_len(dim(msrp_train)[1]), dim(msrp_train)[1] * .8, replace = FALSE)
+train <- msrp_train[index, ]
+remainder <- msrp_train[-index, ]
+index2 <- sample(seq_len(dim(remainder)[1]), dim(remainder)[1] * .5, replace = FALSE)
+test <- remainder[index2, ]
+validate <- remainder[-index2, ]
+dim(train)
+dim(test)
+dim(validate)
+```
+__Model Building__
+```{r}
+# Cylinders
+msrp_trim2 %>% ggplot(aes(x = Engine.Cylinders, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Engine.Cylinders, data = msrp_trim2))
+# Market_Category
+msrp_trim2 %>% ggplot(aes(x = Market_Category, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Market_Category, data = msrp_trim2))
+# Transmission Type
+msrp_trim2 %>% ggplot(aes(x = Transmission.Type, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Transmission.Type, data = msrp_trim2))
+# Driven_Wheels
+msrp_trim2 %>% ggplot(aes(x = Driven_Wheels, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Driven_Wheels, data = msrp_trim2))
+# Vehicle.Size
+msrp_trim2 %>% ggplot(aes(x = Vehicle.Size, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Vehicle.Size, data = msrp_trim2))
+# Number.of.Doors
+msrp_trim2 %>% ggplot(aes(x = Number.of.Doors, y = log_adj_msrp)) +
+    geom_boxplot()
+summary(lm(log_adj_msrp ~ Number.of.Doors, data = msrp_trim2))
+# Categorical Statistics
+t(aggregate(log_adj_msrp ~ Engine.Fuel.Type, data = msrp_trim, summary))
+t(aggregate(log_adj_msrp ~ Market.Category, data = msrp_trim, mean))
+msrp_trim %>%
+    count(Engine.Cylinders, sort = TRUE)
+# Charts
+msrp_trim %>%
+    ggplot(aes(x = Year, y = log_adj_msrp, color = Market_Category)) +
+    geom_point()
+msrp_trim %>%
+    ggplot(aes(x = log_adj_msrp)) +
+    geom_histogram()
+msrp_train %>% ggplot(aes(x = Engine.HP, y = log_adj_msrp, color = Fuel_Type)) + geom_point()
+```
+
+__Model Building__
+```{r}
+# Feature Selection
+model <- lm(log_adj_msrp ~ ., data = train)
+summary(model)
+reg_fwd <- regsubsets(log_adj_msrp ~ .,
+    data = train, method = "forward", nvmax = 100)
+summary(reg_fwd)$adjr2
+summary(reg_fwd)$rss
+summary(reg_fwd)$bic
+par(mfrow = c(1, 3))
+bics <- summary(reg_fwd)$bic
+plot(1:51, bics, type = "l", ylab = "BIC", xlab = "# of predictors")
+index <- which(bics == min(bics))
+points(index, bics[index], col = "red", pch = 10)
+adjr2 <- summary(reg_fwd)$adjr2
+plot(1:51, adjr2, type = "l", ylab = "Adjusted R-squared", xlab = "# of predictors")
+index <- which(adjr2 == max(adjr2))
+points(index, adjr2[index], col = "red", pch = 10)
+rss <- summary(reg_fwd)$rss
+plot(1:51, rss, type = "l", ylab = "train RSS", xlab = "# of predictors")
+index <- which(rss == min(rss))
+points(index, rss[index], col = "red", pch = 10)
+# Prediction Function from Turner
+predict.regsubsets <- function(object, newdata, id, ...) {
+    form <- as.formula(object$call[[2]])
+    mat <- model.matrix(form, newdata)
+    coefi <- coef(object, id = id)
+    xvars <- names(coefi)
+    mat[, xvars] %*% coefi
+}
+testASE <- c()
+# note my index is to 20 since that what I set it in regsubsets
+for (i in 1:51) {
+    predictions <- predict.regsubsets(object = reg_fwd, newdata = test, id = i)
+    testASE[i] <- mean((test$log_adj_msrp) - predictions)^2
+}
+par(mfrow = c(1, 1))
+plot(1:51, testASE, type = "l", xlab = "# of predictors", ylab = "test vs train ASE", ylim = c(0, 1))
+index <- which(testASE == min(testASE))
+points(index, testASE[index], col = "red", pch = 10)
+rss <- summary(reg_fwd)$rss
+lines(1:51, rss / dim(test)[1], lty = 3, col = "blue") # Dividing - ASE=RSS/sample size
+reg.final <- regsubsets(log_adj_msrp ~ ., data = train, method = "forward", nvmax = 7)
+coef(reg.final, 2)
+final.model <- lm(log_adj_msrp ~ Engine.HP + Market_Category, data = msrp_trim3)
+summary(final.model)
+plot(exp(final.model$fitted.values),exp(msrp_trim3$log_adj_msrp),xlab="Predicted",ylab="adj_msrp",xlim=c(0,400000),ylim=c(0,400000))
+lines(c(0, 400000), c(0, 400000), col = "red")
+```
+```
